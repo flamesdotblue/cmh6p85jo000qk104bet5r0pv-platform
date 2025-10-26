@@ -1,28 +1,62 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react';
+import Hero from './components/Hero';
+import DashboardOverview from './components/DashboardOverview';
+import GradeForm from './components/GradeForm';
+import PerformanceCharts from './components/PerformanceCharts';
+import { api } from './lib/api';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [courses, setCourses] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = async () => {
+    setLoading(true);
+    const [c, a, e] = await Promise.all([
+      api.list('courses'),
+      api.list('assignments'),
+      api.list('exams'),
+    ]);
+    setCourses(c);
+    setAssignments(a);
+    setExams(e);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    api.seed();
+    refresh();
+  }, []);
+
+  const stats = useMemo(() => api.getStats(), [loading]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
-          Vibe Coding Platform
-        </h1>
-        <p className="text-gray-600 mb-6">
-          Your AI-powered development environment
-        </p>
-        <div className="text-center">
-          <button
-            onClick={() => setCount(count + 1)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-          >
-            Count is {count}
-          </button>
+    <div className="min-h-screen w-full bg-neutral-950 text-white">
+      <Hero />
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+        <DashboardOverview
+          loading={loading}
+          courses={courses}
+          assignments={assignments}
+          exams={exams}
+          stats={stats}
+        />
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2">
+            <PerformanceCharts courses={courses} assignments={assignments} exams={exams} />
+          </div>
+          <div className="xl:col-span-1">
+            <GradeForm courses={courses} onChange={refresh} />
+          </div>
         </div>
-      </div>
+      </main>
+      <footer className="border-t border-white/10 mt-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 text-sm text-white/60 flex items-center justify-between">
+          <span>Student Dashboard for Academic Tracking</span>
+          <span>Local data • Unique IDs • Fast UI</span>
+        </div>
+      </footer>
     </div>
-  )
+  );
 }
-
-export default App
